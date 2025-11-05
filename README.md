@@ -14,7 +14,9 @@ AutoF11 is a lightweight Windows tray application that automatically toggles ful
 - **Multiple Strategies**: Support for F11, Alt+Enter, Win+Up, and TryF11ThenAltEnter (tries F11 first, then Alt+Enter if F11 doesn't work)
 - **Reliable Key Injection**: Uses SendInput with PostMessage fallback for maximum compatibility
 - **Smart Cooldown**: Prevents repeated triggers for the same window within a configurable time period
+- **Fullscreen Tracking**: Once an app is fullscreened, it stays fullscreen when switching between apps (no re-toggling)
 - **Session Tracking**: Option to apply fullscreen only once per session per app
+- **Always Toggle**: Option to always toggle fullscreen even if already fullscreened (for apps that need to toggle every time)
 - **Whitelist/Blacklist**: Global whitelist and blacklist for process filtering
 - **Pause Functionality**: Temporarily pause auto-fullscreen for 1, 5, or 15 minutes
 - **Start with Windows**: Option to automatically start with Windows
@@ -82,6 +84,7 @@ dotnet test
      - **Delay (ms)**: Delay before sending keys (default: 150ms)
      - **Enabled**: Whether the rule is active
      - **Only Once**: Apply fullscreen only once per session for this app
+     - **Always Toggle**: Always toggle fullscreen even if already fullscreened (useful for apps that need to toggle every time)
 
 3. Click "Apply" to save changes (applies immediately without restart)
 
@@ -137,6 +140,13 @@ AutoF11 uses `SendInput` to send keyboard input to the foreground window. If the
 
 The `TryF11ThenAltEnter` strategy intelligently detects if F11 worked by checking if the window became borderless (fullscreen indicator). If F11 worked, it skips Alt+Enter to avoid toggling back out of fullscreen.
 
+### Fullscreen Tracking
+
+Once an app is fullscreened, AutoF11 tracks it and prevents re-toggling when switching between applications. This means:
+- When you switch to an already-fullscreened app, it stays fullscreen (no toggle)
+- The app remains fullscreen until you manually exit fullscreen or close the app
+- If you want an app to always toggle (even if already fullscreened), enable the "Always Toggle" option in the rule
+
 ## Configuration
 
 ### Settings File
@@ -191,8 +201,10 @@ Logs are automatically rotated when they reach 5MB, keeping up to 5 log files.
 2. Check if the window title filter is correct
 3. Ensure the rule is enabled
 4. Check if "Only Once" is enabled and the session hasn't been cleared
-5. Check logs for "Checking rules for process" to see what process name is detected
-6. Unknown apps automatically use `TryF11ThenAltEnter` - check logs for "using TryF11ThenAltEnter (default heuristic)"
+5. Check if "Always Toggle" is needed for apps that should toggle every time
+6. Check logs for "Checking rules for process" to see what process name is detected
+7. Unknown apps automatically use `TryF11ThenAltEnter` - check logs for "using TryF11ThenAltEnter (default heuristic)"
+8. If an app is already fullscreen, it won't toggle again unless "Always Toggle" is enabled - check logs for "Window [app] is already fullscreen, skipping"
 
 ### Fullscreen Not Working for Specific App
 
