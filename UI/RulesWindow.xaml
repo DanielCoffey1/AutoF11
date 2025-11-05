@@ -1,0 +1,54 @@
+<Window x:Class="AutoF11.UI.RulesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:AutoF11.Core;assembly=AutoF11"
+        Title="Per-App Rules - AutoF11" Height="600" Width="900"
+        ResizeMode="CanResize" WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Configure rules for applications to automatically toggle fullscreen" 
+                   Margin="0,0,0,10" FontSize="12"/>
+
+        <!-- Rules DataGrid -->
+        <DataGrid x:Name="RulesDataGrid" Grid.Row="1" 
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="True"
+                  CanUserDeleteRows="True"
+                  GridLinesVisibility="All"
+                  HeadersVisibility="Column"
+                  SelectionMode="Single"
+                  SelectionUnit="Cell">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Process Name" Binding="{Binding ProcessName}" Width="150"/>
+                <DataGridTextColumn Header="Window Title Contains" Binding="{Binding WindowTitleContains}" Width="200"/>
+                <DataGridTemplateColumn Header="Strategy" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Strategy}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox x:Name="StrategyComboBox" SelectedItem="{Binding Strategy}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Delay (ms)" Binding="{Binding DelayMs}" Width="100"/>
+                <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" Width="80"/>
+                <DataGridCheckBoxColumn Header="Only Once" Binding="{Binding OnlyOncePerSession}" Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Apply" Width="80" Height="30" Margin="0,0,10,0" Click="OnApply"/>
+            <Button Content="Cancel" Width="80" Height="30" Click="OnCancel"/>
+        </StackPanel>
+    </Grid>
+</Window>
