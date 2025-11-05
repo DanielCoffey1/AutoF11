@@ -55,6 +55,12 @@ public partial class App : System.Windows.Application
                 _foregroundHook.ClearFullscreenTracking(); // Clear tracking on startup
             }
 
+            // Create main window (hidden, required for WPF but never shown)
+            MainWindow = new MainWindow();
+            MainWindow.Visibility = Visibility.Hidden;
+            MainWindow.ShowInTaskbar = false;
+            MainWindow.WindowState = WindowState.Minimized;
+
             // Create tray icon
             _trayIcon = new TrayIcon(
                 _logger,
@@ -64,9 +70,6 @@ public partial class App : System.Windows.Application
                 _processWatcher,
                 _inputSender
             );
-
-            // Hide main window (we only use tray)
-            MainWindow?.Hide();
 
             _logger.Log(LogLevel.Information, "AutoF11 started successfully");
         }
