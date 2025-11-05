@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Threading;
@@ -57,7 +58,41 @@ public class TrayIcon : IDisposable
 
     private Icon CreateIcon()
     {
-        // Create a simple icon using a bitmap
+        try
+        {
+            // Try to load from the .ico file in the same directory as the executable
+            var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+            var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
+            var iconPath = Path.Combine(assemblyDirectory ?? "", "AutoF11.ico");
+            
+            if (File.Exists(iconPath))
+            {
+                return new Icon(iconPath);
+            }
+            
+            // Fallback: try to load as embedded resource
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = "AutoF11.AutoF11.ico";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream != null)
+            {
+                return new Icon(stream);
+            }
+            
+            // Last resort: create a simple icon
+            _logger.Log(LogLevel.Warning, $"Could not load AutoF11.ico from {iconPath}, using fallback icon");
+            return CreateFallbackIcon();
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Warning, $"Failed to load icon: {ex.Message}, using fallback icon");
+            return CreateFallbackIcon();
+        }
+    }
+    
+    private Icon CreateFallbackIcon()
+    {
+        // Create a simple icon using a bitmap as fallback
         using var bitmap = new Bitmap(16, 16);
         using var g = Graphics.FromImage(bitmap);
         g.Clear(Color.Transparent);
