@@ -9,14 +9,16 @@ AutoF11 is a lightweight Windows tray application that automatically toggles ful
 ## Features
 
 - **Automatic Fullscreen Toggling**: Detects when windows become foreground or new processes start, and automatically sends fullscreen keys
-- **Per-App Rules**: Configure different strategies (F11, Alt+Enter, Win+Up) for different applications
-- **Multiple Strategies**: Support for F11, Alt+Enter, and Win+Up key combinations
+- **Per-App Rules**: Configure different strategies (F11, Alt+Enter, Win+Up, TryF11ThenAltEnter) for different applications
+- **Smart Default Behavior**: Unknown apps automatically try F11 first, then fall back to Alt+Enter if needed
+- **Multiple Strategies**: Support for F11, Alt+Enter, Win+Up, and TryF11ThenAltEnter (tries F11 first, then Alt+Enter if F11 doesn't work)
+- **Reliable Key Injection**: Uses SendInput with PostMessage fallback for maximum compatibility
 - **Smart Cooldown**: Prevents repeated triggers for the same window within a configurable time period
 - **Session Tracking**: Option to apply fullscreen only once per session per app
 - **Whitelist/Blacklist**: Global whitelist and blacklist for process filtering
 - **Pause Functionality**: Temporarily pause auto-fullscreen for 1, 5, or 15 minutes
 - **Start with Windows**: Option to automatically start with Windows
-- **Logging**: Comprehensive logging with rolling file logs
+- **Comprehensive Logging**: Detailed logging with rolling file logs and diagnostic information
 - **System Tray Integration**: Clean system tray interface with context menu
 
 ## Requirements
@@ -76,7 +78,7 @@ dotnet test
    - Configure:
      - **Process Name**: The process name (e.g., `chrome`, `msedge`, `firefox`)
      - **Window Title Contains**: Optional filter based on window title
-     - **Strategy**: F11, Alt+Enter, Win+Up, or None
+     - **Strategy**: F11, Alt+Enter, Win+Up, TryF11ThenAltEnter, or None
      - **Delay (ms)**: Delay before sending keys (default: 150ms)
      - **Enabled**: Whether the rule is active
      - **Only Once**: Apply fullscreen only once per session for this app
@@ -91,6 +93,8 @@ On first run, AutoF11 includes default rules for:
 - **VS Code** (F11, disabled): Disabled by default
 - **Explorer** (None, disabled): Disabled by default
 - **Game Launchers** (Alt+Enter): Steam, Epic Games Launcher
+
+**Unknown Apps**: Apps without explicit rules automatically use `TryF11ThenAltEnter` strategy, which attempts F11 first and falls back to Alt+Enter if F11 doesn't work. This provides automatic support for most applications without configuration.
 
 ### Tray Menu Options
 
@@ -121,14 +125,17 @@ AutoF11 uses WMI (`ManagementEventWatcher`) to detect when new processes start. 
 
 ### Key Injection
 
-AutoF11 uses `SendInput` to send keyboard input to the foreground window. For elevated target windows, the application may prompt for elevation if needed.
+AutoF11 uses `SendInput` to send keyboard input to the foreground window. If the window isn't in the foreground or `SendInput` fails, it automatically falls back to `PostMessage` for better compatibility. For elevated target windows, the application may prompt for elevation if needed.
 
 ### Strategies
 
-- **F11**: Standard fullscreen toggle key
+- **F11**: Standard fullscreen toggle key (works for most browsers and applications)
 - **Alt+Enter**: Common alternative for games and media players
 - **Win+Up**: Windows key combination for maximizing windows
+- **TryF11ThenAltEnter**: Tries F11 first, then automatically falls back to Alt+Enter if F11 doesn't work (default for unknown apps)
 - **None**: Disable auto-fullscreen for specific apps
+
+The `TryF11ThenAltEnter` strategy intelligently detects if F11 worked by checking if the window became borderless (fullscreen indicator). If F11 worked, it skips Alt+Enter to avoid toggling back out of fullscreen.
 
 ## Configuration
 
@@ -170,6 +177,7 @@ Logs are automatically rotated when they reach 5MB, keeping up to 5 log files.
 3. Check if AutoF11 is paused
 4. Check the logs for error messages
 5. Try running AutoF11 as administrator if the target window is elevated
+6. Check logs for "Window not foreground, using PostMessage" - this indicates the app is using fallback method
 
 ### Application Not Starting
 
@@ -183,6 +191,15 @@ Logs are automatically rotated when they reach 5MB, keeping up to 5 log files.
 2. Check if the window title filter is correct
 3. Ensure the rule is enabled
 4. Check if "Only Once" is enabled and the session hasn't been cleared
+5. Check logs for "Checking rules for process" to see what process name is detected
+6. Unknown apps automatically use `TryF11ThenAltEnter` - check logs for "using TryF11ThenAltEnter (default heuristic)"
+
+### Fullscreen Not Working for Specific App
+
+1. Check the logs to see which strategy is being used
+2. If the app uses `TryF11ThenAltEnter`, check logs for "F11 appears to have worked" or "F11 didn't appear to work, trying Alt+Enter"
+3. If neither F11 nor Alt+Enter work, the app may not support keyboard fullscreen toggling
+4. Try adding an explicit rule with a different strategy (e.g., Win+Up) or set to None to disable
 
 ## Elevation Note
 
@@ -221,10 +238,11 @@ AutoF11/
 
 - **ForegroundHook**: Monitors foreground window changes using `SetWinEventHook`
 - **ProcessStartWatcher**: Watches for new process starts using WMI
-- **InputSender**: Sends keyboard input using `SendInput` API
-- **RuleEngine**: Resolves which rule (if any) applies to a process/window
+- **InputSender**: Sends keyboard input using `SendInput` API with `PostMessage` fallback
+- **RuleEngine**: Resolves which rule (if any) applies to a process/window, with smart defaults for unknown apps
 - **Settings**: Loads/saves configuration from JSON file
 - **TrayIcon**: Manages system tray icon and context menu
+- **Logger**: Rolling file logger with diagnostic information
 
 ## License
 

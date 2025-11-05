@@ -95,6 +95,37 @@ public class InputSender
                     else
                         SendWinUp();
                     break;
+                case KeyStrategy.TryF11ThenAltEnter:
+                    // Try F11 first
+                    _logger.Log(LogLevel.Information, "Trying F11 first");
+                    bool wasBorderlessBefore = Win32Interop.IsWindowBorderless(hWnd);
+                    
+                    if (usePostMessage)
+                        SendF11PostMessage(hWnd);
+                    else
+                        SendF11();
+                    
+                    // Wait a bit to see if F11 worked
+                    await Task.Delay(400);
+                    
+                    // Check if window became borderless (fullscreen indicator)
+                    bool isBorderlessAfter = Win32Interop.IsWindowBorderless(hWnd);
+                    bool mightHaveWorked = isBorderlessAfter && !wasBorderlessBefore;
+                    
+                    if (mightHaveWorked)
+                    {
+                        _logger.Log(LogLevel.Information, "F11 appears to have worked (window became borderless), skipping Alt+Enter");
+                    }
+                    else
+                    {
+                        // Try Alt+Enter as fallback
+                        _logger.Log(LogLevel.Information, "F11 didn't appear to work, trying Alt+Enter as fallback");
+                        if (usePostMessage)
+                            SendAltEnterPostMessage(hWnd);
+                        else
+                            SendAltEnter();
+                    }
+                    break;
             }
 
             _logger.Log(LogLevel.Information, $"Sent {strategy} to window");
@@ -236,20 +267,32 @@ public class InputSender
 
     private void SendF11PostMessage(IntPtr hWnd)
     {
-        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYDOWN, new IntPtr(Win32Interop.VK_F11), IntPtr.Zero);
-        System.Threading.Thread.Sleep(10);
-        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYUP, new IntPtr(Win32Interop.VK_F11), IntPtr.Zero);
+        // Construct proper lParam for keyboard messages
+        // lParam format: bits 0-15: repeat count, bits 16-23: scan code, bits 24-28: extended key flags, bits 29: context, bit 30: previous key state, bit 31: transition state
+        // For F11: scan code is 0x57, extended key flag is 0
+        IntPtr lParamDown = new IntPtr(0x00570001); // repeat count 1, scan code 0x57
+        IntPtr lParamUp = new IntPtr(0xC0570001); // repeat count 1, scan code 0x57, previous key state 1, transition state 1
+        
+        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYDOWN, new IntPtr(Win32Interop.VK_F11), lParamDown);
+        System.Threading.Thread.Sleep(20);
+        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYUP, new IntPtr(Win32Interop.VK_F11), lParamUp);
     }
 
     private void SendAltEnterPostMessage(IntPtr hWnd)
     {
-        Win32Interop.PostMessage(hWnd, Win32Interop.WM_SYSKEYDOWN, new IntPtr(Win32Interop.VK_LMENU), IntPtr.Zero);
-        System.Threading.Thread.Sleep(10);
-        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYDOWN, new IntPtr(Win32Interop.VK_RETURN), IntPtr.Zero);
-        System.Threading.Thread.Sleep(10);
-        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYUP, new IntPtr(Win32Interop.VK_RETURN), IntPtr.Zero);
-        System.Threading.Thread.Sleep(10);
-        Win32Interop.PostMessage(hWnd, Win32Interop.WM_SYSKEYUP, new IntPtr(Win32Interop.VK_LMENU), IntPtr.Zero);
+        // Alt key scan code: 0x38, Enter key scan code: 0x1C
+        IntPtr altDown = new IntPtr(0x00380001); // Alt down
+        IntPtr enterDown = new IntPtr(0x001C0001); // Enter down
+        IntPtr enterUp = new IntPtr(0xC01C0001); // Enter up
+        IntPtr altUp = new IntPtr(0xC0380001); // Alt up
+        
+        Win32Interop.PostMessage(hWnd, Win32Interop.WM_SYSKEYDOWN, new IntPtr(Win32Interop.VK_LMENU), altDown);
+        System.Threading.Thread.Sleep(20);
+        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYDOWN, new IntPtr(Win32Interop.VK_RETURN), enterDown);
+        System.Threading.Thread.Sleep(20);
+        Win32Interop.PostMessage(hWnd, Win32Interop.WM_KEYUP, new IntPtr(Win32Interop.VK_RETURN), enterUp);
+        System.Threading.Thread.Sleep(20);
+        Win32Interop.PostMessage(hWnd, Win32Interop.WM_SYSKEYUP, new IntPtr(Win32Interop.VK_LMENU), altUp);
     }
 
     private void SendWinUpPostMessage(IntPtr hWnd)

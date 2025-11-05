@@ -39,6 +39,10 @@ public class Settings
                 });
                 if (settings != null)
                 {
+                    // Ensure rules list is initialized if it was null
+                    settings.Rules ??= new List<AppRule>();
+                    settings.GlobalWhitelist ??= new List<string>();
+                    settings.GlobalBlacklist ??= new List<string>();
                     return settings;
                 }
             }
@@ -51,6 +55,7 @@ public class Settings
         // Return defaults
         var defaultSettings = new Settings();
         defaultSettings.InitializeDefaults();
+        defaultSettings.Save(); // Save defaults so user can see them
         return defaultSettings;
     }
 
@@ -172,7 +177,8 @@ public enum KeyStrategy
     None,
     F11,
     AltEnter,
-    WinUp
+    WinUp,
+    TryF11ThenAltEnter
 }
 
 /// <summary>

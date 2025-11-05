@@ -10,6 +10,7 @@ public static class KeyStrategyValues
         KeyStrategy.None,
         KeyStrategy.F11,
         KeyStrategy.AltEnter,
-        KeyStrategy.WinUp
+        KeyStrategy.WinUp,
+        KeyStrategy.TryF11ThenAltEnter
     };
 }
