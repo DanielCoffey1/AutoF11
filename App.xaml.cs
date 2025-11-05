@@ -52,6 +52,7 @@ public partial class App : System.Windows.Application
             {
                 _foregroundHook.Start();
                 _processWatcher.Start();
+                _foregroundHook.ClearFullscreenTracking(); // Clear tracking on startup
             }
 
             // Create tray icon

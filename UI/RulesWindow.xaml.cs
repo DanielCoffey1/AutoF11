@@ -47,7 +47,8 @@ public partial class RulesWindow : Window
                 Strategy = rule.Strategy,
                 DelayMs = rule.DelayMs,
                 Enabled = rule.Enabled,
-                OnlyOncePerSession = rule.OnlyOncePerSession
+                OnlyOncePerSession = rule.OnlyOncePerSession,
+                AlwaysToggle = rule.AlwaysToggle
             });
         }
     }
@@ -70,7 +71,8 @@ public partial class RulesWindow : Window
                 Strategy = viewModel.Strategy,
                 DelayMs = viewModel.DelayMs,
                 Enabled = viewModel.Enabled,
-                OnlyOncePerSession = viewModel.OnlyOncePerSession
+                OnlyOncePerSession = viewModel.OnlyOncePerSession,
+                AlwaysToggle = viewModel.AlwaysToggle
             });
         }
 
@@ -98,5 +100,6 @@ public class AppRuleViewModel
     public int DelayMs { get; set; } = 150;
     public bool Enabled { get; set; } = true;
     public bool OnlyOncePerSession { get; set; } = false;
+    public bool AlwaysToggle { get; set; } = false;
 }
 

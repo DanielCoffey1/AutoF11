@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -18,6 +20,7 @@ public class ForegroundHook : IDisposable
     private DateTime _lastEventTime = DateTime.MinValue;
     private IntPtr _lastWindowHandle = IntPtr.Zero;
     private const int CooldownMs = 2000; // 2 second cooldown for same window
+    private readonly HashSet<IntPtr> _fullscreenedWindows = new(); // Track windows that are already fullscreen
 
     public event EventHandler<ForegroundChangedEventArgs>? ForegroundChanged;
 
@@ -89,9 +92,16 @@ public class ForegroundHook : IDisposable
             if (className == "Progman" || className == "Shell_TrayWnd" || className == "WorkerW")
                 return;
 
-            // Cooldown check
+            // Cooldown check - but only if we haven't already fullscreened this window
+            bool alreadyFullscreened;
+            lock (_lock)
+            {
+                alreadyFullscreened = _fullscreenedWindows.Contains(hwnd);
+            }
+            
+            // If already fullscreened, skip cooldown check and just check if we should skip
             var now = DateTime.Now;
-            if (hwnd == _lastWindowHandle)
+            if (!alreadyFullscreened && hwnd == _lastWindowHandle)
             {
                 var elapsed = (now - _lastEventTime).TotalMilliseconds;
                 if (elapsed < CooldownMs)
@@ -133,6 +143,17 @@ public class ForegroundHook : IDisposable
     {
         try
         {
+            // Check if window is still valid
+            if (!Win32Interop.IsWindow(hWnd))
+            {
+                // Remove invalid handle from tracking
+                lock (_lock)
+                {
+                    _fullscreenedWindows.Remove(hWnd);
+                }
+                return;
+            }
+            
             var rule = _ruleEngine.ResolveRule(processName, windowTitle);
             if (rule == null)
             {
@@ -140,13 +161,79 @@ public class ForegroundHook : IDisposable
                 return;
             }
 
+            // Check if window is already fullscreen (borderless)
+            bool isAlreadyFullscreen = Win32Interop.IsWindowBorderless(hWnd);
+            
+            // Check if we've already fullscreened this window in this session
+            // Use a lock to safely check the HashSet
+            bool wasFullscreened;
+            lock (_lock)
+            {
+                wasFullscreened = _fullscreenedWindows.Contains(hWnd);
+            }
+            
+            // Skip if already fullscreen and we've already processed it, unless rule says to always toggle
+            if (isAlreadyFullscreen && wasFullscreened && !rule.AlwaysToggle)
+            {
+                _logger.Log(LogLevel.Information, $"Window {processName} is already fullscreen, skipping (AlwaysToggle: {rule.AlwaysToggle})");
+                return;
+            }
+            
+            // If window is borderless but we haven't tracked it, it might have been manually fullscreened
+            // In this case, we should still track it but not send keys (unless AlwaysToggle is true)
+            if (isAlreadyFullscreen && !wasFullscreened && !rule.AlwaysToggle)
+            {
+                _logger.Log(LogLevel.Information, $"Window {processName} is already fullscreen (manually?), tracking but not sending keys");
+                lock (_lock)
+                {
+                    _fullscreenedWindows.Add(hWnd);
+                }
+                return;
+            }
+
             _logger.Log(LogLevel.Information, $"Applying rule for {processName}: {rule.Strategy} (delay: {rule.DelayMs}ms)");
 
             await _inputSender.SendKeysAsync(rule.Strategy, rule.DelayMs, hWnd);
+            
+            // Track that we've fullscreened this window (only if keys were sent)
+            lock (_lock)
+            {
+                _fullscreenedWindows.Add(hWnd);
+            }
         }
         catch (Exception ex)
         {
             _logger.Log(LogLevel.Error, $"Error processing foreground change: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Clears the fullscreened windows tracking (called when app is paused/resumed or on startup).
+    /// Also removes invalid window handles.
+    /// </summary>
+    public void ClearFullscreenTracking()
+    {
+        lock (_lock)
+        {
+            // Remove invalid window handles
+            var invalidHandles = _fullscreenedWindows.Where(h => !Win32Interop.IsWindow(h)).ToList();
+            foreach (var handle in invalidHandles)
+            {
+                _fullscreenedWindows.Remove(handle);
+            }
+            // Optionally clear all - for now, just remove invalid ones
+            // _fullscreenedWindows.Clear();
+        }
+    }
+    
+    /// <summary>
+    /// Removes a specific window handle from tracking (when window is closed).
+    /// </summary>
+    public void RemoveWindowTracking(IntPtr hWnd)
+    {
+        lock (_lock)
+        {
+            _fullscreenedWindows.Remove(hWnd);
         }
     }
 

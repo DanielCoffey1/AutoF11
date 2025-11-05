@@ -42,6 +42,7 @@
                 <DataGridTextColumn Header="Delay (ms)" Binding="{Binding DelayMs}" Width="100"/>
                 <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled}" Width="80"/>
                 <DataGridCheckBoxColumn Header="Only Once" Binding="{Binding OnlyOncePerSession}" Width="100"/>
+                <DataGridCheckBoxColumn Header="Always Toggle" Binding="{Binding AlwaysToggle}" Width="110"/>
             </DataGrid.Columns>
         </DataGrid>
 

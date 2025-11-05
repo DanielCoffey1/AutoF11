@@ -132,12 +132,14 @@ public class TrayIcon : IDisposable
         {
             _foregroundHook.Start();
             _processWatcher.Start();
+            _foregroundHook.ClearFullscreenTracking(); // Clear tracking when enabled
             _logger.Log(LogLevel.Information, "AutoF11 enabled");
         }
         else
         {
             _foregroundHook.Stop();
             _processWatcher.Stop();
+            _foregroundHook.ClearFullscreenTracking(); // Clear tracking when disabled
             _logger.Log(LogLevel.Information, "AutoF11 disabled");
         }
     }
@@ -193,6 +195,7 @@ public class TrayIcon : IDisposable
             {
                 _foregroundHook.Start();
                 _processWatcher.Start();
+                _foregroundHook.ClearFullscreenTracking(); // Clear tracking on resume
             }
 
             UpdateIcon();

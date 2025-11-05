@@ -192,6 +192,7 @@ public class AppRule
     public int DelayMs { get; set; } = 150;
     public bool Enabled { get; set; } = true;
     public bool OnlyOncePerSession { get; set; } = false;
+    public bool AlwaysToggle { get; set; } = false; // If true, always toggle even if already fullscreen
 
     public bool Matches(string? processName, string? windowTitle)
     {
