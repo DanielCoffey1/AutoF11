@@ -61,9 +61,9 @@ public class TrayIcon : IDisposable
         try
         {
             // Try to load from the .ico file in the same directory as the executable
-            var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-            var assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
-            var iconPath = Path.Combine(assemblyDirectory ?? "", "AutoF11.ico");
+            // Use AppContext.BaseDirectory for single-file publishing compatibility
+            var baseDirectory = AppContext.BaseDirectory;
+            var iconPath = Path.Combine(baseDirectory, "AutoF11.ico");
             
             if (File.Exists(iconPath))
             {
